@@ -3,7 +3,8 @@
 
 Your next favourite post has been published!
 
-{{$title}}
+<strong>Title:</strong> {{$title}}
+
 {{$created_at}}
 
 @component('mail::button', ['url' => config('app.url') . '/posts'])

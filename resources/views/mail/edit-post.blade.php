@@ -1,9 +1,10 @@
 @component('mail::message')
-# There is a Edit Post!!!
+# There is an Edit Post!!!
 
 Your next favourite post has been published!
 
-{{$title}}
+<strong>Title:</strong> {{$title}}
+
 {{$updated_at}}
 
 @component('mail::button', ['url' => config('app.url') . '/posts'])
