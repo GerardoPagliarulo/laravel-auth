@@ -7,6 +7,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use App\Post;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\NewPost;
+use App\Mail\UpdatePost;
 
 class PostController extends Controller
 {
@@ -44,11 +48,16 @@ class PostController extends Controller
         $data = $request->all();
         $data['user_id'] = Auth::id();
         $data['slug'] = Str::slug($data['title'], '-');
+        // Image
+        if (!empty($data['path_img'])) {
+            $data['path_img'] = Storage::disk('public')->put('images', $data['path_img']);
+        }
         $newPost = new Post();
         $newPost->fill($data);
         // Save
         $saved = $newPost->save();
         if ($saved) {
+            Mail::to('user@test.it')->send(new NewPost($newPost));
             return redirect()->route('admin.posts.show', $newPost->id);
         }
     }
@@ -87,8 +96,18 @@ class PostController extends Controller
         $request->validate($this->validationRules());
         $data = $request->all();
         $data['slug'] = Str::slug($data['title'], '-');
+        // Image
+        if (!empty($data['path_img'])) {
+            // Delete previous image
+            if (!empty($post->path_img)) {
+                Storage::disk('public')->delete($post->path_img);
+            }
+            // New Image
+            $data['path_img'] = Storage::disk('public')->put('images', $data['path_img']);
+        }
         $updated = $post->update($data);
         if ($updated) {
+            Mail::to('user@test.it')->send(new UpdatePost($post));
             return redirect()->route('admin.posts.show', $post->id);
         }
     }
@@ -108,6 +127,10 @@ class PostController extends Controller
         $title = $post->title;
         $deleted = $post->delete();
         if ($deleted) {
+            // Delete post image
+            if (!empty($post->path_img)) {
+                Storage::disk('public')->delete($post->path_img);
+            }        
             return redirect()->route('admin.posts.index')->with('post-deleted', $title);
         }
     }
@@ -116,7 +139,8 @@ class PostController extends Controller
     private function validationRules() {
         return [
             'title' => 'required',
-            'body' => 'required'
+            'body' => 'required',
+            'path_img' => 'image'
         ];
     }
 }
